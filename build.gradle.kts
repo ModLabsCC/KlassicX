@@ -1,14 +1,14 @@
 import java.util.*
 
 plugins {
-    kotlin("jvm") version "2.0.0"
+    kotlin("jvm") version "2.1.10"
     `maven-publish`
 }
 
-group = "com.liamxsage"
+group = "cc.modlabs"
 
 version = Calendar.getInstance(TimeZone.getTimeZone("Europe/Berlin")).run {
-    "${get(Calendar.YEAR)}.${get(Calendar.MONTH)}.${get(Calendar.DAY_OF_MONTH)}-${get(Calendar.HOUR_OF_DAY)}.${get(Calendar.MINUTE)}"
+    "${get(Calendar.YEAR)}.${"%02d".format(get(Calendar.MONTH) + 1)}.${"%02d".format(get(Calendar.DAY_OF_MONTH))}"
 }
 
 repositories {
@@ -18,33 +18,41 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
 
-    implementation("ch.qos.logback:logback-classic:1.5.6")
-    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1",)
+    api("ch.qos.logback:logback-classic:1.5.6")
+    api("io.github.cdimascio:dotenv-kotlin:6.4.1")
+    api("com.google.code.gson:gson:2.11.0")
 }
 
 tasks {
     test {
         useJUnitPlatform()
     }
+
+    register<Jar>("sourcesJar") {
+        description = "Generates the sources jar for this project."
+        group = JavaBasePlugin.DOCUMENTATION_GROUP
+        archiveClassifier.set("sources")
+        from(sourceSets["main"].allSource)
+    }
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(23)
     compilerOptions {
         freeCompilerArgs = listOf("-Xopt-in=kotlin.RequiresOptIn")
     }
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(23))
 }
 
 publishing {
     repositories {
         mavenLocal()
         maven {
-            name = "FlawcraNexus"
-            url = uri("https://nexus.flawcra.cc/repository/maven-public/")
+            name = "ModLabsNexus"
+            url = uri("https://nexus.modlabs.cc/repository/maven-public/")
             credentials {
                 username = System.getenv("FLAWCRA_REPO_USER")
                 password = System.getenv("FLAWCRA_REPO_KEY")
@@ -53,7 +61,16 @@ publishing {
     }
     publications {
         create<MavenPublication>("maven") {
-            from(components["kotlin"])
+            artifact(tasks.named("jar").get()) {
+                classifier = null
+            }
+
+            artifact(tasks.named("sourcesJar"))
+
+            pom {
+                name.set("KlassicX")
+                description.set("A utility library designed to simplify development with Kotlin.")
+            }
         }
     }
 }

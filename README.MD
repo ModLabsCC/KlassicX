@@ -2,5 +2,12 @@
 # Download / Implement
 
 ```kt
-implementation("com.liamxsage:KlassicX:2024.7.13-18.48")
+repositories {
+    maven("https://nexus.flawcra.cc/repository/maven-mirrors/")
+}
+
+dependencies {
+    implementation("cc.modlabs:KlassicX:2025.02.23")
+}
+
 ```

@@ -1,4 +1,4 @@
-package com.liamxsage.klassicx.tools
+package cc.modlabs.klassicx.tools
 
 import io.github.cdimascio.dotenv.dotenv
 
