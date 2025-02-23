@@ -8,7 +8,7 @@ plugins {
 group = "cc.modlabs"
 
 version = Calendar.getInstance(TimeZone.getTimeZone("Europe/Berlin")).run {
-    "${get(Calendar.YEAR)}.${"%02d".format(get(Calendar.MONTH) + 1)}.${"%02d".format(get(Calendar.DAY_OF_MONTH))}"
+    "${get(Calendar.YEAR)}.${"%02d".format(get(Calendar.MONTH) + 1)}.${"%02d".format(get(Calendar.DAY_OF_MONTH))}-${"%02d".format(get(Calendar.HOUR_OF_DAY))}.${"%02d".format(get(Calendar.MINUTE))}"
 }
 
 repositories {
