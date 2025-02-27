@@ -7,7 +7,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cc.modlabs:KlassicX:2025.02.23-16.58")
+    implementation("cc.modlabs:KlassicX:<version>")
 }
 
 ```

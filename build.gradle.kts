@@ -42,14 +42,14 @@ tasks {
 }
 
 kotlin {
-    jvmToolchain(23)
+    jvmToolchain(21)
     compilerOptions {
         freeCompilerArgs = listOf("-Xopt-in=kotlin.RequiresOptIn")
     }
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(23))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
 publishing {
