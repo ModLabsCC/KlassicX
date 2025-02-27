@@ -3,6 +3,7 @@ import java.util.*
 plugins {
     kotlin("jvm") version "2.1.10"
     `maven-publish`
+    kotlin("plugin.serialization") version "2.1.0"
 }
 
 group = "cc.modlabs"
@@ -23,6 +24,7 @@ dependencies {
 
     api("ch.qos.logback:logback-classic:1.5.6")
     api("io.github.cdimascio:dotenv-kotlin:6.4.1")
+    api("dev.fruxz:ascend:2024.2.2")
     api("com.google.code.gson:gson:2.11.0")
 }
 

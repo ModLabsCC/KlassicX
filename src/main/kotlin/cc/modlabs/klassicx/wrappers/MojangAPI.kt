@@ -5,7 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.SerialName
 import java.net.URI
-import java.util.UUID
+import java.util.*
 
 object MojangAPI {
     private val gson = Gson()

@@ -2,7 +2,7 @@ package cc.modlabs.klassicx.extensions
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.OptionalInt
+import java.util.*
 import kotlin.math.pow
 
 fun <T : Any> T.getLogger(): Logger {
@@ -73,4 +73,13 @@ fun <K> Map<K, Double>.chooseByProbability(amount: Int): List<K> {
         }
     }
     return result
+}
+
+
+fun <T : Any> T.getThisLogger(): org.slf4j.Logger {
+    return LoggerFactory.getLogger(this::class.java)
+}
+
+fun <T : Any> T.getInternalKlassicxLogger(): org.slf4j.Logger {
+    return LoggerFactory.getLogger("cc.modlabs.klassicx")
 }
