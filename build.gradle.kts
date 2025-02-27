@@ -13,7 +13,7 @@ version = Calendar.getInstance(TimeZone.getTimeZone("Europe/Berlin")).run {
 }
 
 repositories {
-    maven("https://nexus.flawcra.cc/repository/maven-mirrors/")
+    maven("https://nexus.modlabs.cc/repository/maven-mirrors/")
 }
 
 dependencies {
@@ -59,8 +59,8 @@ publishing {
             name = "ModLabsNexus"
             url = uri("https://nexus.modlabs.cc/repository/maven-public/")
             credentials {
-                username = System.getenv("FLAWCRA_REPO_USER")
-                password = System.getenv("FLAWCRA_REPO_KEY")
+                username = System.getenv("NEXUS_USER")
+                password = System.getenv("NEXUS_PASS")
             }
         }
     }
