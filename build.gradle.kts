@@ -18,6 +18,9 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
 
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
     api("ch.qos.logback:logback-classic:1.5.6")
     api("io.github.cdimascio:dotenv-kotlin:6.4.1")
     api("com.google.code.gson:gson:2.11.0")
