@@ -2,6 +2,7 @@ import java.util.*
 
 plugins {
     kotlin("jvm") version "2.1.10"
+    `java-library`
     `maven-publish`
     kotlin("plugin.serialization") version "2.1.0"
 }
@@ -66,15 +67,32 @@ publishing {
     }
     publications {
         create<MavenPublication>("maven") {
-            artifact(tasks.named("jar").get()) {
-                classifier = null
-            }
+            from(components["java"])
 
             artifact(tasks.named("sourcesJar"))
 
             pom {
                 name.set("KlassicX")
                 description.set("A utility library designed to simplify development with Kotlin.")
+                url.set("https://github.com/ModLabsCC/KlassicX")
+                licenses {
+                    license {
+                        name.set("GPL-3.0")
+                        url.set("https://github.com/ModLabsCC/KlassicX/blob/main/LICENSE")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("ModLabsCC")
+                        name.set("ModLabsCC")
+                        email.set("contact@modlabs.cc")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:git://github.com/ModLabsCC/KlassicX.git")
+                    developerConnection.set("scm:git:git@github.com:ModLabsCC/KlassicX.git")
+                    url.set("https://github.com/ModLabsCC/KlassicX")
+                }
             }
         }
     }
