@@ -27,6 +27,9 @@ dependencies {
     api("io.github.cdimascio:dotenv-kotlin:6.4.1")
     api("dev.fruxz:ascend:2024.2.2")
     api("com.google.code.gson:gson:2.11.0")
+
+    api(kotlin("reflect"))
+    api("com.google.guava:guava:33.4.8-jre")
 }
 
 tasks {
