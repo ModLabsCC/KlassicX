@@ -46,3 +46,30 @@ fun isWeekend(): Boolean {
     }
 }
 
+
+fun parseDurationStringToEpoch(durationString: String): Long? {
+    if (durationString.isEmpty()) return null
+
+    val regex = "(\\d+)([smhdw])".toRegex(RegexOption.IGNORE_CASE)
+    val match = regex.matchEntire(durationString)
+
+    if (match != null) {
+        val (valueStr, unit) = match.destructured
+        val value = valueStr.toLongOrNull() ?: return null
+
+        if (value <= 0) return null
+
+        val durationMillis = when (unit.lowercase()) {
+            "s" -> java.util.concurrent.TimeUnit.SECONDS.toMillis(value)
+            "m" -> java.util.concurrent.TimeUnit.MINUTES.toMillis(value)
+            "h" -> java.util.concurrent.TimeUnit.HOURS.toMillis(value)
+            "d" -> java.util.concurrent.TimeUnit.DAYS.toMillis(value)
+            "w" -> java.util.concurrent.TimeUnit.DAYS.toMillis(value * 7)
+            else -> return null
+        }
+
+        return System.currentTimeMillis() + durationMillis
+    }
+
+    return null
+}
