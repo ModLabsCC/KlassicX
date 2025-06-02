@@ -1,9 +1,10 @@
 package cc.modlabs.klassicx.wrappers
 
+import cc.modlabs.klassicx.extensions.getLogger
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.serialization.SerialName
 import java.net.URI
 import java.util.*
 
@@ -44,8 +45,23 @@ data class MclErrorResponse(
 data class MclSuccessResponse(
     val username: String,
     val id: String,
+
+    @SerializedName("raw_id")
+    val rawId: String,
     val avatar: String,
 
-    @SerialName("skin_texture")
+    @SerializedName("skin_texture")
     val skinTexture: String,
+
+    @SerializedName("properties")
+    val skinProperties: List<SkinProperties>,
+
+    @SerializedName("mojang_skin_texture")
+    val mojangSkinTexture: String
+)
+
+data class SkinProperties(
+    val name: String,
+    val value: String,
+    val signature: String,
 )
