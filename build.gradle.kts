@@ -20,13 +20,13 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
 
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
-    api("ch.qos.logback:logback-classic:1.5.6")
-    api("io.github.cdimascio:dotenv-kotlin:6.4.1")
-    api("dev.fruxz:ascend:2024.2.2")
-    api("com.google.code.gson:gson:2.11.0")
+    api("ch.qos.logback:logback-classic:1.5.18")
+    api("io.github.cdimascio:dotenv-kotlin:6.5.1")
+    api("dev.fruxz:ascend:2025.7-8af65e5")
+    api("com.google.code.gson:gson:2.13.1")
 
     api(kotlin("reflect"))
     api("com.google.guava:guava:33.4.8-jre")
