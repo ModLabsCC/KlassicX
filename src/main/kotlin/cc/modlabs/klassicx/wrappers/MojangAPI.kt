@@ -14,7 +14,7 @@ object MojangAPI {
     fun getUser(user: String): MclSuccessResponse? {
         try {
             CoroutineScope(Dispatchers.Default).run {
-                val url = "https://mcl.flawcra.cc/$user"
+                val url = "https://api.modlabs.cc/mcl/$user"
                 val response = URI.create(url).toURL().readText()
 
                 val errorResponse = gson.fromJson(response, MclErrorResponse::class.java)
