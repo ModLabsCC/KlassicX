@@ -3,10 +3,18 @@ package cc.modlabs.klassicx.translation
 import cc.modlabs.klassicx.extensions.getInternalKlassicxLogger
 import cc.modlabs.klassicx.tools.TempStorage
 import cc.modlabs.klassicx.translation.interfaces.TranslationSource
+import cc.modlabs.klassicx.translation.live.HelloEvent
+import cc.modlabs.klassicx.translation.live.KeyCreatedEvent
+import cc.modlabs.klassicx.translation.live.KeyDeletedEvent
+import cc.modlabs.klassicx.translation.live.KeyUpdatedEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
@@ -37,6 +45,17 @@ class TranslationManager(
     private var cache: Map<String, List<Translation>> = emptyMap()
 
     private val notFoundTranslations = mutableListOf<String>()
+
+    // Coroutine machinery for optional live updates from the source
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private var liveJob: Job? = null
+    private val liveMutex = Mutex()
+
+    init {
+        // Attempt to start live updates collection if the source supports it
+        // This is best-effort and will no-op if live updates are not available.
+        scope.launch { ensureLiveUpdatesStarted() }
+    }
 
     /**
      * Retrieves all translations from the cache.
@@ -75,6 +94,9 @@ class TranslationManager(
                 }
             }
         }
+
+        // Ensure we are subscribed to live updates after an initial load is triggered
+        ensureLiveUpdatesStarted()
     }
 
     private suspend fun loadTranslationsForLanguage(languageCode: String) {
@@ -137,6 +159,80 @@ class TranslationManager(
             cache = cache + (name to translation)
         } finally {
             lock.writeLock().unlock()
+        }
+    }
+
+    /**
+     * Replace translations for a language in the cache atomically.
+     */
+    private fun setLanguage(name: String, translations: List<Translation>) {
+        try {
+            lock.writeLock().lock()
+            cache = cache + (name to translations)
+        } finally {
+            lock.writeLock().unlock()
+        }
+    }
+
+    /**
+     * Start collecting live updates if the source provides a Flow.
+     * Safe to call many times; only starts once.
+     */
+    private suspend fun ensureLiveUpdatesStarted() {
+        liveMutex.withLock {
+            if (liveJob != null) return
+            val flow = source.liveUpdates() ?: run {
+                getInternalKlassicxLogger().info("Translation source does not provide live updates; continuing without WS.")
+                return
+            }
+            getInternalKlassicxLogger().info("Starting live translation updates listener…")
+            liveJob = scope.launch {
+                try {
+                    flow.collect { evt ->
+                        when (evt) {
+                            is HelloEvent -> {
+                                getInternalKlassicxLogger().info("LiveUpdates connected for translation ${evt.translationId} with permission ${evt.permission}")
+                            }
+                            is KeyUpdatedEvent -> {
+                                // Refresh only the affected locale
+                                try {
+                                    val language = evt.locale
+                                    getInternalKlassicxLogger().info("LiveUpdates: key_updated -> refreshing locale '$language'")
+                                    val fresh = source.getTranslations(language)
+                                    setLanguage(language, fresh)
+                                } catch (t: Throwable) {
+                                    getInternalKlassicxLogger().error("Failed to refresh locale after key_updated", t)
+                                }
+                            }
+                            is KeyCreatedEvent, is KeyDeletedEvent -> {
+                                // Key set changed; refresh all locales currently present in cache
+                                try {
+                                    val locales = try {
+                                        lock.readLock().lock()
+                                        cache.keys.toList()
+                                    } finally {
+                                        lock.readLock().unlock()
+                                    }
+                                    if (locales.isEmpty()) return@collect
+                                    getInternalKlassicxLogger().info("LiveUpdates: ${evt.type} -> refreshing locales ${locales.joinToString()}")
+                                    locales.forEach { lang ->
+                                        try {
+                                            val fresh = source.getTranslations(lang)
+                                            setLanguage(lang, fresh)
+                                        } catch (inner: Throwable) {
+                                            getInternalKlassicxLogger().error("Failed to refresh locale '$lang' after ${evt.type}", inner)
+                                        }
+                                    }
+                                } catch (t: Throwable) {
+                                    getInternalKlassicxLogger().error("Failed bulk refresh after ${evt.type}", t)
+                                }
+                            }
+                        }
+                    }
+                } catch (t: Throwable) {
+                    getInternalKlassicxLogger().error("Live updates listener terminated with error", t)
+                }
+            }
         }
     }
 
