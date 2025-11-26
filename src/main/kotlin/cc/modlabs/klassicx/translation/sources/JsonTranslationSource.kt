@@ -20,7 +20,10 @@ class JsonTranslationSource(private val directory: File) : TranslationSource {
 
         val gson = Gson()
         val type = object : TypeToken<Map<String, String>>() {}.type
-        val data: Map<String, String> = gson.fromJson(langFile.reader(), type)
+        // Ensure the reader is closed to avoid file locks on Windows during tests
+        val data: Map<String, String> = langFile.bufferedReader().use { reader ->
+            gson.fromJson(reader, type)
+        }
         return data.map { (key, value) ->
             Translation(
                 language,
