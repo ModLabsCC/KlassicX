@@ -56,8 +56,9 @@ class TranslationManager(
     /**
      * List of registered callbacks for live update events.
      * Callbacks are invoked when a live update event is received and processed.
+     * Using CopyOnWriteArrayList for thread-safe iteration during notification.
      */
-    private val liveUpdateCallbacks = mutableListOf<LiveUpdateCallback>()
+    private val liveUpdateCallbacks = java.util.concurrent.CopyOnWriteArrayList<LiveUpdateCallback>()
 
     init {
         // Attempt to start live updates collection if the source supports it
@@ -103,12 +104,6 @@ class TranslationManager(
                 getInternalKlassicxLogger().error("Error in live update callback", t)
             }
         }
-    }
-
-    init {
-        // Attempt to start live updates collection if the source supports it
-        // This is best-effort and will no-op if live updates are not available.
-        scope.launch { ensureLiveUpdatesStarted() }
     }
 
     /**

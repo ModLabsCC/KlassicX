@@ -69,6 +69,22 @@ class TranslationManagerTest {
         assertEquals(expected, last)
     }
 
+    /**
+     * Helper function to wait for a condition to become true within a timeout.
+     * Useful for waiting for asynchronous events to be processed.
+     */
+    private suspend fun waitUntil(
+        predicate: () -> Boolean,
+        maxAttempts: Int = 60,
+        delayMs: Long = 25L,
+    ) {
+        var attempts = 0
+        while (!predicate() && attempts < maxAttempts) {
+            delay(delayMs)
+            attempts++
+        }
+    }
+
     @Test
     fun load_and_get_with_placeholders() = runTest {
         val src = FakeTranslationSource()
@@ -196,11 +212,7 @@ class TranslationManagerTest {
         src.emit(keyUpdatedEvent)
 
         // Wait for the event to be processed
-        var attempts = 0
-        while (receivedEvents.isEmpty() && attempts < 60) {
-            delay(25)
-            attempts++
-        }
+        waitUntil(predicate = { receivedEvents.isNotEmpty() })
 
         assertEquals(1, receivedEvents.size)
         val event = receivedEvents[0]
@@ -227,11 +239,7 @@ class TranslationManagerTest {
         src.emit(helloEvent)
 
         // Wait for the event to be processed
-        var attempts = 0
-        while (receivedEvents.isEmpty() && attempts < 60) {
-            delay(25)
-            attempts++
-        }
+        waitUntil(predicate = { receivedEvents.isNotEmpty() })
 
         assertEquals(1, receivedEvents.size)
         assertTrue(receivedEvents[0] is HelloEvent)
@@ -260,11 +268,7 @@ class TranslationManagerTest {
         src.emit(keyCreatedEvent)
 
         // Wait for the event to be processed
-        var attempts = 0
-        while (receivedEvents.isEmpty() && attempts < 60) {
-            delay(25)
-            attempts++
-        }
+        waitUntil(predicate = { receivedEvents.isNotEmpty() })
 
         assertEquals(1, receivedEvents.size)
         assertTrue(receivedEvents[0] is KeyCreatedEvent)
@@ -292,11 +296,7 @@ class TranslationManagerTest {
         src.emit(keyDeletedEvent)
 
         // Wait for the event to be processed
-        var attempts = 0
-        while (receivedEvents.isEmpty() && attempts < 60) {
-            delay(25)
-            attempts++
-        }
+        waitUntil(predicate = { receivedEvents.isNotEmpty() })
 
         assertEquals(1, receivedEvents.size)
         assertTrue(receivedEvents[0] is KeyDeletedEvent)
@@ -323,11 +323,7 @@ class TranslationManagerTest {
         src.emit(HelloEvent(translationId = "test", permission = "WRITE"))
 
         // Wait for events to be processed
-        var attempts = 0
-        while ((receivedEvents1.isEmpty() || receivedEvents2.isEmpty()) && attempts < 60) {
-            delay(25)
-            attempts++
-        }
+        waitUntil(predicate = { receivedEvents1.isNotEmpty() && receivedEvents2.isNotEmpty() })
 
         assertEquals(1, receivedEvents1.size)
         assertEquals(1, receivedEvents2.size)
@@ -351,11 +347,8 @@ class TranslationManagerTest {
         // Emit first event - should be received
         src.emit(HelloEvent(translationId = "test", permission = "READ"))
         
-        var attempts = 0
-        while (receivedEvents.isEmpty() && attempts < 60) {
-            delay(25)
-            attempts++
-        }
+        // Use a longer timeout for this test as the live updates run on Default dispatcher
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, maxAttempts = 120)
         assertEquals(1, receivedEvents.size)
 
         // Unregister the callback
