@@ -2,11 +2,13 @@ package cc.modlabs.klassicx.translation
 
 import cc.modlabs.klassicx.extensions.getInternalKlassicxLogger
 import cc.modlabs.klassicx.tools.TempStorage
+import cc.modlabs.klassicx.translation.interfaces.LiveUpdateCallback
 import cc.modlabs.klassicx.translation.interfaces.TranslationSource
 import cc.modlabs.klassicx.translation.live.HelloEvent
 import cc.modlabs.klassicx.translation.live.KeyCreatedEvent
 import cc.modlabs.klassicx.translation.live.KeyDeletedEvent
 import cc.modlabs.klassicx.translation.live.KeyUpdatedEvent
+import cc.modlabs.klassicx.translation.live.LiveUpdateEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,6 +52,58 @@ class TranslationManager(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var liveJob: Job? = null
     private val liveMutex = Mutex()
+
+    /**
+     * List of registered callbacks for live update events.
+     * Callbacks are invoked when a live update event is received and processed.
+     */
+    private val liveUpdateCallbacks = mutableListOf<LiveUpdateCallback>()
+
+    init {
+        // Attempt to start live updates collection if the source supports it
+        // This is best-effort and will no-op if live updates are not available.
+        scope.launch { ensureLiveUpdatesStarted() }
+    }
+
+    /**
+     * Registers a callback to be notified when live update events are received.
+     * 
+     * The callback will be invoked for all live update events including:
+     * - HelloEvent - when the connection is established
+     * - KeyCreatedEvent - when a new translation key is created
+     * - KeyDeletedEvent - when a translation key is deleted
+     * - KeyUpdatedEvent - when a translation value is updated
+     * 
+     * @param callback The callback to register
+     */
+    fun registerLiveUpdateCallback(callback: LiveUpdateCallback) {
+        liveUpdateCallbacks.add(callback)
+    }
+
+    /**
+     * Unregisters a previously registered live update callback.
+     * 
+     * @param callback The callback to unregister
+     * @return true if the callback was found and removed, false otherwise
+     */
+    fun unregisterLiveUpdateCallback(callback: LiveUpdateCallback): Boolean {
+        return liveUpdateCallbacks.remove(callback)
+    }
+
+    /**
+     * Notifies all registered callbacks about a live update event.
+     * 
+     * @param event The event to notify callbacks about
+     */
+    private fun notifyLiveUpdateCallbacks(event: LiveUpdateEvent) {
+        for (callback in liveUpdateCallbacks) {
+            try {
+                callback.onLiveUpdate(event)
+            } catch (t: Throwable) {
+                getInternalKlassicxLogger().error("Error in live update callback", t)
+            }
+        }
+    }
 
     init {
         // Attempt to start live updates collection if the source supports it
@@ -189,6 +243,9 @@ class TranslationManager(
             liveJob = scope.launch {
                 try {
                     flow.collect { evt ->
+                        // Notify all registered callbacks about the event
+                        notifyLiveUpdateCallbacks(evt)
+                        
                         when (evt) {
                             is HelloEvent -> {
                                 getInternalKlassicxLogger().info("LiveUpdates connected for translation ${evt.translationId} with permission ${evt.permission}")
