@@ -71,17 +71,17 @@ class TranslationManagerTest {
 
     /**
      * Helper function to wait for a condition to become true within a timeout.
-     * Useful for waiting for asynchronous events to be processed.
+     * Uses real time (System.nanoTime) to handle timing since the live updates
+     * collector runs on Dispatchers.Default, not the test scheduler.
      */
     private suspend fun waitUntil(
         predicate: () -> Boolean,
-        maxAttempts: Int = 60,
-        delayMs: Long = 25L,
+        timeoutMs: Long = 1500L,
+        stepMs: Long = 25L,
     ) {
-        var attempts = 0
-        while (!predicate() && attempts < maxAttempts) {
-            delay(delayMs)
-            attempts++
+        val start = System.nanoTime()
+        while (!predicate() && (System.nanoTime() - start) / 1_000_000 < timeoutMs) {
+            delay(stepMs)
         }
     }
 
@@ -212,7 +212,7 @@ class TranslationManagerTest {
         src.emit(keyUpdatedEvent)
 
         // Wait for the event to be processed
-        waitUntil(predicate = { receivedEvents.isNotEmpty() })
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
 
         assertEquals(1, receivedEvents.size)
         val event = receivedEvents[0]
@@ -239,7 +239,7 @@ class TranslationManagerTest {
         src.emit(helloEvent)
 
         // Wait for the event to be processed
-        waitUntil(predicate = { receivedEvents.isNotEmpty() })
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
 
         assertEquals(1, receivedEvents.size)
         assertTrue(receivedEvents[0] is HelloEvent)
@@ -268,7 +268,7 @@ class TranslationManagerTest {
         src.emit(keyCreatedEvent)
 
         // Wait for the event to be processed
-        waitUntil(predicate = { receivedEvents.isNotEmpty() })
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
 
         assertEquals(1, receivedEvents.size)
         assertTrue(receivedEvents[0] is KeyCreatedEvent)
@@ -296,7 +296,7 @@ class TranslationManagerTest {
         src.emit(keyDeletedEvent)
 
         // Wait for the event to be processed
-        waitUntil(predicate = { receivedEvents.isNotEmpty() })
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
 
         assertEquals(1, receivedEvents.size)
         assertTrue(receivedEvents[0] is KeyDeletedEvent)
@@ -323,7 +323,7 @@ class TranslationManagerTest {
         src.emit(HelloEvent(translationId = "test", permission = "WRITE"))
 
         // Wait for events to be processed
-        waitUntil(predicate = { receivedEvents1.isNotEmpty() && receivedEvents2.isNotEmpty() })
+        waitUntil(predicate = { receivedEvents1.isNotEmpty() && receivedEvents2.isNotEmpty() }, timeoutMs = 3000L)
 
         assertEquals(1, receivedEvents1.size)
         assertEquals(1, receivedEvents2.size)
@@ -337,7 +337,7 @@ class TranslationManagerTest {
         manager.loadTranslations()
         advanceUntilIdle()
 
-        val receivedEvents = mutableListOf<LiveUpdateEvent>()
+        val receivedEvents = java.util.concurrent.CopyOnWriteArrayList<LiveUpdateEvent>()
         val callback = LiveUpdateCallback { event ->
             receivedEvents.add(event)
         }
@@ -347,19 +347,20 @@ class TranslationManagerTest {
         // Emit first event - should be received
         src.emit(HelloEvent(translationId = "test", permission = "READ"))
         
-        // Use a longer timeout for this test as the live updates run on Default dispatcher
-        waitUntil(predicate = { receivedEvents.isNotEmpty() }, maxAttempts = 120)
-        assertEquals(1, receivedEvents.size)
+        // Poll with real time waiting since live updates run on Default dispatcher
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
+        assertEquals(1, receivedEvents.size, "First event should be received")
 
         // Unregister the callback
         val removed = manager.unregisterLiveUpdateCallback(callback)
-        assertTrue(removed)
+        assertTrue(removed, "Callback should be removed")
 
         // Emit second event - should NOT be received
         src.emit(HelloEvent(translationId = "test", permission = "WRITE"))
         
+        // Wait a short time to allow any potential event processing
         delay(200)
-        assertEquals(1, receivedEvents.size) // Should still be 1
+        assertEquals(1, receivedEvents.size, "Second event should NOT be received after unregister")
     }
 
     @Test
