@@ -147,6 +147,14 @@ class TransForgeTranslationSource(
                         val json = data.toString()
                         val obj = gson.fromJson(json, Map::class.java) as Map<*, *>
                         val type = obj["type"] as? String
+                        // App-level keepalive: server may send {"type":"ping"}; reply with {"type":"pong"}
+                        if (type == "ping") {
+                            try {
+                                webSocket.sendText("{" + '"'.toString() + "type" + '"'.toString() + ":" + '"'.toString() + "pong" + '"'.toString() + "}", true)
+                            } catch (_: Throwable) {
+                                // ignore failures to respond to ping
+                            }
+                        }
                         val event: LiveUpdateEvent? = when (type) {
                             "hello" -> HelloEvent(
                                 translationId = (obj["translationId"] as? String) ?: translationId,
@@ -170,6 +178,7 @@ class TransForgeTranslationSource(
                                 value = obj["value"] as? String,
                                 ts = (obj["ts"] as? String) ?: ""
                             )
+                            // "ping" handled above for keepalive; no event to emit
                             else -> null
                         }
                         if (event != null) trySend(event).isSuccess
@@ -182,6 +191,23 @@ class TransForgeTranslationSource(
                 }
 
                 override fun onBinary(webSocket: WebSocket, data: ByteBuffer, last: Boolean): CompletionStage<*>? {
+                    webSocket.request(1)
+                    return null
+                }
+
+                // Handle WebSocket control-frame ping/pong at protocol level (separate from JSON ping/pong messages)
+                override fun onPing(webSocket: WebSocket, message: ByteBuffer): CompletionStage<*>? {
+                    try {
+                        webSocket.sendPong(message)
+                    } catch (_: Throwable) {
+                        // ignore failures
+                    } finally {
+                        webSocket.request(1)
+                    }
+                    return null
+                }
+
+                override fun onPong(webSocket: WebSocket, message: ByteBuffer): CompletionStage<*>? {
                     webSocket.request(1)
                     return null
                 }

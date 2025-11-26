@@ -79,23 +79,23 @@ class TranslationManager(
         getInternalKlassicxLogger().info("Retrieving all translations from backend")
         val all = source.getLanguages()
 
+        // Clear the cache before (re)loading
         cache = emptyMap()
 
-        var processed = 0
-        all.forEach {
-            val languageCode = it
-            CoroutineScope(Dispatchers.Default).launch {
-                loadTranslationsForLanguage(languageCode)
-                processed++
-
-                if (processed == all.size) {
-                    delay(1000)
-                    callback?.invoke(getAll())
+        // Load translations in the caller's coroutine context so tests using runTest/advanceUntilIdle
+        // can deterministically wait for completion. We still parallelize per-language loads.
+        kotlinx.coroutines.coroutineScope {
+            for (languageCode in all) {
+                launch {
+                    loadTranslationsForLanguage(languageCode)
                 }
             }
         }
 
-        // Ensure we are subscribed to live updates after an initial load is triggered
+        // Invoke callback after all languages have been loaded
+        callback?.invoke(getAll())
+
+        // Ensure we are subscribed to live updates after an initial load is completed
         ensureLiveUpdatesStarted()
     }
 
