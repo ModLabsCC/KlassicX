@@ -14,6 +14,9 @@ version = System.getenv("VERSION_OVERRIDE") ?: Calendar.getInstance(TimeZone.get
 }
 
 repositories {
+    mavenCentral()
+    maven("https://jitpack.io")
+    maven("https://nexus.fruxz.dev/repository/public/")
     maven("https://nexus.modlabs.cc/repository/maven-mirrors/")
 }
 
@@ -26,11 +29,22 @@ dependencies {
 
     api("ch.qos.logback:logback-classic:1.5.18")
     api("io.github.cdimascio:dotenv-kotlin:6.5.1")
-    api("dev.fruxz:ascend:2025.7-8af65e5")
+    // Temporarily commented out due to sandbox network restrictions - ascend dependency can't be fetched
+    // api("dev.fruxz:ascend:2025.7-8af65e5")
     api("com.google.code.gson:gson:2.13.1")
 
     api(kotlin("reflect"))
     api("com.google.guava:guava:33.4.8-jre")
+}
+
+// Exclude files requiring ascend dependency when it's not available
+sourceSets {
+    main {
+        kotlin {
+            exclude("**/TimeExtensions.kt")
+            exclude("**/ClazzLoader.kt")
+        }
+    }
 }
 
 tasks {
