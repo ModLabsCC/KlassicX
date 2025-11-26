@@ -71,4 +71,6 @@ object Environment {
         return getFloatOrNull(key) ?: default
     }
 
+    internal val isDevLoggingEnabled: Boolean
+        get() = getString("DEBUG_LOGS")?.toBoolean() == true
 }

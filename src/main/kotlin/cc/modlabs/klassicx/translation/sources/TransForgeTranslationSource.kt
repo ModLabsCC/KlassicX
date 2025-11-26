@@ -1,5 +1,7 @@
 package cc.modlabs.klassicx.translation.sources
 
+import cc.modlabs.klassicx.extensions.getInternalKlassicxLogger
+import cc.modlabs.klassicx.tools.Environment.isDevLoggingEnabled
 import cc.modlabs.klassicx.translation.Translation
 import cc.modlabs.klassicx.translation.interfaces.TranslationSource
 import cc.modlabs.klassicx.translation.live.HelloEvent
@@ -83,6 +85,10 @@ class TransForgeTranslationSource(
         val type = object : TypeToken<List<LocaleResponse>>() {}.type
         val locales: List<LocaleResponse> = gson.fromJson(response.body(), type)
 
+        if (isDevLoggingEnabled) {
+            getInternalKlassicxLogger().info("Discovered languages for translationId $translationId: ${locales.joinToString { "${it.locale}(enabled: ${it.enabled} - id: ${it.id} - ${it.createdAt})" }}")
+        }
+
         locales
             .filter { it.enabled }
             .map { it.locale }
@@ -115,7 +121,10 @@ class TransForgeTranslationSource(
         val data: Map<String, String> = gson.fromJson(response.body(), type) ?: emptyMap()
 
         data.map { (key, value) ->
-            Translation(
+            if(isDevLoggingEnabled) {
+                getInternalKlassicxLogger().info("Translating $key to $value in $language")
+            }
+            Translation (
                 languageCode = language,
                 messageKey = key,
                 message = value
