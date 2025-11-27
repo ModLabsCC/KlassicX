@@ -100,6 +100,58 @@ class TranslationManagerTest {
     }
 
     @Test
+    fun load_and_get_with_styled_placeholders_small_and_serif() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "styled", "Hi %name% | %small:name% | %serif:name%")
+        val manager = TranslationManager(src)
+
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val t = manager.get("en_US", "styled", mapOf("name" to "World!"))
+        assertNotNull(t)
+        assertEquals("Hi World! | ᴡᴏʀʟᴅ! | 𝑊𝑜𝑟𝑙𝑑!", t.message)
+    }
+
+    @Test
+    fun styled_placeholders_handle_multiple_keys_independently() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "multi", "%small:a%-%serif:b%")
+        val manager = TranslationManager(src)
+
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val t = manager.get(
+            "en_US",
+            "multi",
+            mapOf(
+                "a" to "Ab",
+                "b" to "Z9",
+            )
+        )
+        assertNotNull(t)
+        // small(a="Ab") => ᴀʙ; serif(b="Z9") => 𝑍9
+        assertEquals("ᴀʙ-𝑍9", t.message)
+    }
+
+    @Test
+    fun styled_placeholders_passthrough_for_unmapped_characters() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "emoji", "%small:txt% / %serif:txt%")
+        val manager = TranslationManager(src)
+
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val value = "😀🚀"
+        val t = manager.get("en_US", "emoji", mapOf("txt" to value))
+        assertNotNull(t)
+        // No characters map => unchanged on both sides
+        assertEquals("$value / $value", t.message)
+    }
+
+    @Test
     fun fallback_to_en_US_when_missing_language() = runTest {
         val src = FakeTranslationSource()
         src.put("en_US", "greet", "Hello")

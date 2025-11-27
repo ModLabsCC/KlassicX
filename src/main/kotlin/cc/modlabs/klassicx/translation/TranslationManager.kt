@@ -2,6 +2,8 @@ package cc.modlabs.klassicx.translation
 
 import cc.modlabs.klassicx.extensions.getInternalKlassicxLogger
 import cc.modlabs.klassicx.tools.TempStorage
+import cc.modlabs.klassicx.tools.font.toSerif
+import cc.modlabs.klassicx.tools.font.toSmallCaps
 import cc.modlabs.klassicx.translation.interfaces.LiveUpdateCallback
 import cc.modlabs.klassicx.translation.interfaces.TranslationSource
 import cc.modlabs.klassicx.translation.live.HelloEvent
@@ -175,14 +177,21 @@ class TranslationManager(
                 getInternalKlassicxLogger().info("No translation found for $languageCode:$messageKey")
                 if (languageCode != fallbackLanguage) return null
                 notFoundTranslations.add(
-                    messageKey + "||" + placeholders.toList()
-                        .joinToString("|") { "${it.first}::${it.second?.let { it::class.java.simpleName } ?: "null"}" })
+                    "$messageKey||" + placeholders.toList()
+                        .joinToString("|") { pair -> "${pair.first}::${pair.second?.let { it::class.java.simpleName } ?: "null"}" })
                 writeFailedTranslations()
                 return null
             }
 
             for ((key, value) in placeholders) {
-                message = message?.copy(message = message.message.replace("%$key%", value.toString()))
+                val raw = value.toString()
+
+                val replaced = message!!.message
+                    .replace("%$key%", raw)
+                    .replace("%small:$key%", toSmallCaps(raw))
+                    .replace("%serif:$key%", toSerif(raw))
+
+                message = message.copy(message = replaced)
             }
 
             return message
