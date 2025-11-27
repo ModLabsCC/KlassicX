@@ -5,6 +5,14 @@ plugins {
     `java-library`
     `maven-publish`
     kotlin("plugin.serialization") version "2.1.0"
+    id("org.sonarqube") version "7.0.1.6134"
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "ModLabsCC_KlassicX_9255672f-a744-49cf-84be-f3d2ecfcda02")
+        property("sonar.projectName", "KlassicX")
+    }
 }
 
 group = "cc.modlabs"
