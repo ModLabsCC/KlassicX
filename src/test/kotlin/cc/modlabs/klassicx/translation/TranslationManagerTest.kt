@@ -1,5 +1,6 @@
 package cc.modlabs.klassicx.translation
 
+import cc.modlabs.klassicx.translation.interfaces.LiveUpdateCallback
 import cc.modlabs.klassicx.translation.interfaces.TranslationSource
 import cc.modlabs.klassicx.translation.live.HelloEvent
 import cc.modlabs.klassicx.translation.live.KeyCreatedEvent
@@ -14,6 +15,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -65,6 +67,22 @@ class TranslationManagerTest {
             delay(stepMs)
         }
         assertEquals(expected, last)
+    }
+
+    /**
+     * Helper function to wait for a condition to become true within a timeout.
+     * Uses real time (System.nanoTime) to handle timing since the live updates
+     * collector runs on Dispatchers.Default, not the test scheduler.
+     */
+    private suspend fun waitUntil(
+        predicate: () -> Boolean,
+        timeoutMs: Long = 1500L,
+        stepMs: Long = 25L,
+    ) {
+        val start = System.nanoTime()
+        while (!predicate() && (System.nanoTime() - start) / 1_000_000 < timeoutMs) {
+            delay(stepMs)
+        }
     }
 
     @Test
@@ -169,5 +187,191 @@ class TranslationManagerTest {
         // allow collector to refresh (uses Default dispatcher, so poll)
         assertEventuallyEquals(expected = "VALUE_EN", supplier = { manager.get("en_US", "new_key")?.message })
         assertEventuallyEquals(expected = "WERT_DE", supplier = { manager.get("de_DE", "new_key")?.message })
+    }
+
+    @Test
+    fun live_update_callback_invoked_on_key_updated() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "greet", "Hello")
+        val manager = TranslationManager(src)
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val receivedEvents = mutableListOf<LiveUpdateEvent>()
+        manager.registerLiveUpdateCallback(LiveUpdateCallback { event ->
+            receivedEvents.add(event)
+        })
+
+        val keyUpdatedEvent = KeyUpdatedEvent(
+            translationId = "test",
+            keyId = "id-1",
+            locale = "en_US",
+            value = "Hello Updated",
+            ts = "2025-01-01T00:00:00Z"
+        )
+        src.emit(keyUpdatedEvent)
+
+        // Wait for the event to be processed
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
+
+        assertEquals(1, receivedEvents.size)
+        val event = receivedEvents[0]
+        assertTrue(event is KeyUpdatedEvent)
+        assertEquals("en_US", (event as KeyUpdatedEvent).locale)
+    }
+
+    @Test
+    fun live_update_callback_invoked_on_hello_event() = runTest {
+        val src = FakeTranslationSource()
+        val manager = TranslationManager(src)
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val receivedEvents = mutableListOf<LiveUpdateEvent>()
+        manager.registerLiveUpdateCallback { event ->
+            receivedEvents.add(event)
+        }
+
+        val helloEvent = HelloEvent(
+            translationId = "test",
+            permission = "READ"
+        )
+        src.emit(helloEvent)
+
+        // Wait for the event to be processed
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
+
+        assertEquals(1, receivedEvents.size)
+        assertTrue(receivedEvents[0] is HelloEvent)
+        assertEquals("READ", (receivedEvents[0] as HelloEvent).permission)
+    }
+
+    @Test
+    fun live_update_callback_invoked_on_key_created() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "existing", "Value")
+        val manager = TranslationManager(src)
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val receivedEvents = mutableListOf<LiveUpdateEvent>()
+        manager.registerLiveUpdateCallback { event ->
+            receivedEvents.add(event)
+        }
+
+        val keyCreatedEvent = KeyCreatedEvent(
+            translationId = "test",
+            keyId = "new-key-id",
+            key = "new_key",
+            ts = "2025-01-01T00:00:00Z"
+        )
+        src.emit(keyCreatedEvent)
+
+        // Wait for the event to be processed
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
+
+        assertEquals(1, receivedEvents.size)
+        assertTrue(receivedEvents[0] is KeyCreatedEvent)
+        assertEquals("new_key", (receivedEvents[0] as KeyCreatedEvent).key)
+    }
+
+    @Test
+    fun live_update_callback_invoked_on_key_deleted() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "to_delete", "Value")
+        val manager = TranslationManager(src)
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val receivedEvents = mutableListOf<LiveUpdateEvent>()
+        manager.registerLiveUpdateCallback { event ->
+            receivedEvents.add(event)
+        }
+
+        val keyDeletedEvent = KeyDeletedEvent(
+            translationId = "test",
+            keyId = "delete-key-id",
+            ts = "2025-01-01T00:00:00Z"
+        )
+        src.emit(keyDeletedEvent)
+
+        // Wait for the event to be processed
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
+
+        assertEquals(1, receivedEvents.size)
+        assertTrue(receivedEvents[0] is KeyDeletedEvent)
+    }
+
+    @Test
+    fun multiple_callbacks_all_receive_events() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "greet", "Hello")
+        val manager = TranslationManager(src)
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val receivedEvents1 = mutableListOf<LiveUpdateEvent>()
+        val receivedEvents2 = mutableListOf<LiveUpdateEvent>()
+
+        manager.registerLiveUpdateCallback { event ->
+            receivedEvents1.add(event)
+        }
+        manager.registerLiveUpdateCallback { event ->
+            receivedEvents2.add(event)
+        }
+
+        src.emit(HelloEvent(translationId = "test", permission = "WRITE"))
+
+        // Wait for events to be processed
+        waitUntil(predicate = { receivedEvents1.isNotEmpty() && receivedEvents2.isNotEmpty() }, timeoutMs = 3000L)
+
+        assertEquals(1, receivedEvents1.size)
+        assertEquals(1, receivedEvents2.size)
+    }
+
+    @Test
+    fun unregister_callback_stops_notifications() = runTest {
+        val src = FakeTranslationSource()
+        src.put("en_US", "greet", "Hello")
+        val manager = TranslationManager(src)
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val receivedEvents = java.util.concurrent.CopyOnWriteArrayList<LiveUpdateEvent>()
+        val callback = LiveUpdateCallback { event ->
+            receivedEvents.add(event)
+        }
+
+        manager.registerLiveUpdateCallback(callback)
+
+        // Emit first event - should be received
+        src.emit(HelloEvent(translationId = "test", permission = "READ"))
+        
+        // Poll with real time waiting since live updates run on Default dispatcher
+        waitUntil(predicate = { receivedEvents.isNotEmpty() }, timeoutMs = 3000L)
+        assertEquals(1, receivedEvents.size, "First event should be received")
+
+        // Unregister the callback
+        val removed = manager.unregisterLiveUpdateCallback(callback)
+        assertTrue(removed, "Callback should be removed")
+
+        // Emit second event - should NOT be received
+        src.emit(HelloEvent(translationId = "test", permission = "WRITE"))
+        
+        // Wait a short time to allow any potential event processing
+        delay(200)
+        assertEquals(1, receivedEvents.size, "Second event should NOT be received after unregister")
+    }
+
+    @Test
+    fun unregister_nonexistent_callback_returns_false() = runTest {
+        val src = FakeTranslationSource()
+        val manager = TranslationManager(src)
+        manager.loadTranslations()
+        advanceUntilIdle()
+
+        val callback = LiveUpdateCallback { }
+        val removed = manager.unregisterLiveUpdateCallback(callback)
+        assertFalse(removed)
     }
 }
