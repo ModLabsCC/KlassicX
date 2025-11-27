@@ -33,16 +33,6 @@ dependencies {
     api("com.google.guava:guava:33.4.8-jre")
 }
 
-// Exclude files requiring ascend dependency when it's not available
-sourceSets {
-    main {
-        kotlin {
-            exclude("**/TimeExtensions.kt")
-            exclude("**/ClazzLoader.kt")
-        }
-    }
-}
-
 tasks {
     test {
         useJUnitPlatform()
