@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm") version "2.1.10"
     `java-library`
     `maven-publish`
-    kotlin("plugin.serialization") version "2.1.0"
+    kotlin("plugin.serialization") version "2.1.10"
     id("org.sonarqube") version "7.0.1.6134"
 }
 
