@@ -37,7 +37,7 @@ dependencies {
     api("dev.fruxz:ascend:2025.7-8af65e5")
     api("com.google.code.gson:gson:2.13.1")
 
-    api(kotlin("reflect"))
+    api("org.jetbrains.kotlin:kotlin-reflect:2.1.20")
     api("com.google.guava:guava:33.4.8-jre")
 }
 
