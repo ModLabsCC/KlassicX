@@ -1,10 +1,10 @@
 import java.util.*
 
 plugins {
-    kotlin("jvm") version "2.1.10"
+    kotlin("jvm") version "2.1.20"
     `java-library`
     `maven-publish`
-    kotlin("plugin.serialization") version "2.1.10"
+    kotlin("plugin.serialization") version "2.1.20"
     id("org.sonarqube") version "7.0.1.6134"
 }
 
