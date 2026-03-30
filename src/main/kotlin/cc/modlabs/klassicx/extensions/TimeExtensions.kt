@@ -45,6 +45,14 @@ fun Instant.durationFromNow(clock: Clock = Clock.systemUTC()): Duration {
     return java.time.Duration.between(clock.instant(), this).toKotlinDuration()
 }
 
+operator fun Instant.plus(duration: Duration): Instant {
+    return plus(duration.inWholeNanoseconds, java.time.temporal.ChronoUnit.NANOS)
+}
+
+operator fun Instant.minus(duration: Duration): Instant {
+    return minus(duration.inWholeNanoseconds, java.time.temporal.ChronoUnit.NANOS)
+}
+
 fun Duration.fromNow(clock: Clock = Clock.systemUTC()): Instant {
     return clock.instant().plus(this.inWholeNanoseconds, java.time.temporal.ChronoUnit.NANOS)
 }
