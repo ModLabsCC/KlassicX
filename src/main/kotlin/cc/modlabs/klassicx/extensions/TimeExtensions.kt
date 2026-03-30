@@ -1,10 +1,13 @@
 package cc.modlabs.klassicx.extensions
 
 import java.text.SimpleDateFormat
+import java.time.Clock
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.time.Duration
+import kotlin.time.toKotlinDuration
 
 fun <T> Iterable<T>.sumOf(selector: (T) -> Duration): Duration {
     var sum = Duration.ZERO
@@ -32,6 +35,22 @@ fun isWeekend(): Boolean {
         DayOfWeek.SUNDAY -> hour < 22
         else -> false
     }
+}
+
+fun Instant.durationToNow(clock: Clock = Clock.systemUTC()): Duration {
+    return java.time.Duration.between(this, clock.instant()).toKotlinDuration()
+}
+
+fun Instant.durationFromNow(clock: Clock = Clock.systemUTC()): Duration {
+    return java.time.Duration.between(clock.instant(), this).toKotlinDuration()
+}
+
+fun Duration.fromNow(clock: Clock = Clock.systemUTC()): Instant {
+    return clock.instant().plus(this.inWholeNanoseconds, java.time.temporal.ChronoUnit.NANOS)
+}
+
+fun Duration.ago(clock: Clock = Clock.systemUTC()): Instant {
+    return clock.instant().minus(this.inWholeNanoseconds, java.time.temporal.ChronoUnit.NANOS)
 }
 
 

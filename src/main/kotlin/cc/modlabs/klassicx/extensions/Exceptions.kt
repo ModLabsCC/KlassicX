@@ -98,6 +98,49 @@ inline fun <T> tryOrNull(
     process: () -> T,
 ): T? = tryOrNull(silent = silent(), catch = catch, process = process)
 
+inline fun <T> tryCatch(
+    catch: (Exception) -> T,
+    process: () -> T,
+): T = try {
+    process()
+} catch (exception: Exception) {
+    catch(exception)
+}
+
+inline fun <T> tryCatch(
+    silent: Boolean = true,
+    exceptionCatch: ExceptionCatch<Exception> = ExceptionCatch.ignore(),
+    catch: (Exception) -> T,
+    process: () -> T,
+): T = try {
+    process()
+} catch (exception: Exception) {
+    if (silent) {
+        exceptionCatch(exception, "")
+    } else {
+        catchException(exception, exceptionCatch)
+    }
+    catch(exception)
+}
+
+inline fun tryCatch(
+    silent: Boolean = true,
+    exceptionCatch: ExceptionCatch<Exception> = ExceptionCatch.ignore(),
+    catch: (Exception) -> Unit,
+    process: () -> Unit,
+) {
+    try {
+        process()
+    } catch (exception: Exception) {
+        if (silent) {
+            exceptionCatch(exception, "")
+        } else {
+            catchException(exception, exceptionCatch)
+        }
+        catch(exception)
+    }
+}
+
 inline fun tryOrIgnore(
     silent: Boolean = true,
     catch: ExceptionCatch<Exception> = ExceptionCatch.ignore(),

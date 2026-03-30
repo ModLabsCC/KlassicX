@@ -56,3 +56,55 @@ inline fun <T> T?.ifNotNull(process: () -> Unit) {
 fun <T, D> Pair<T?, D>.asDefaultNullDodge(): Any? {
     return if (first != null) first else second
 }
+
+fun <T> Iterable<T>.getOrNull(index: Int): T? {
+    if (index < 0) {
+        return null
+    }
+
+    return when (this) {
+        is List<T> -> this.getOrNull(index)
+        else -> this.drop(index).firstOrNull()
+    }
+}
+
+inline fun <T> Iterable<T>.getOrElse(index: Int, defaultValue: (Int) -> T): T {
+    return getOrNull(index) ?: defaultValue(index)
+}
+
+operator fun <T> Iterable<T>.get(index: Int): T {
+    return getOrNull(index) ?: throw IndexOutOfBoundsException("Index $index out of bounds for iterable")
+}
+
+fun <T> MutableList<T>.setOrNull(index: Int, value: T): T? {
+    if (index !in indices) {
+        return null
+    }
+
+    return set(index, value)
+}
+
+fun <T> MutableList<T>.setIfPresent(index: Int, value: T): Boolean {
+    return if (index in indices) {
+        this[index] = value
+        true
+    } else {
+        false
+    }
+}
+
+fun <T> MutableList<T>.setOrAdd(index: Int, value: T): MutableList<T> {
+    require(index >= 0) { "Index must be non-negative" }
+
+    when {
+        index < size -> this[index] = value
+        index == size -> add(value)
+        else -> throw IndexOutOfBoundsException("Index $index out of bounds for mutable list of size $size")
+    }
+
+    return this
+}
+
+fun <K, V> MutableMap<K, V>.getOrSet(key: K, defaultValue: () -> V): V {
+    return getOrPut(key, defaultValue)
+}
