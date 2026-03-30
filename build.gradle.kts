@@ -1,10 +1,10 @@
 import java.util.*
 
 plugins {
-    kotlin("jvm") version "2.1.20"
+    kotlin("jvm") version "2.3.20"
     `java-library`
     `maven-publish`
-    kotlin("plugin.serialization") version "2.1.20"
+    kotlin("plugin.serialization") version "2.3.20"
     id("org.sonarqube") version "7.0.1.6134"
 }
 
@@ -32,13 +32,12 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
-    api("ch.qos.logback:logback-classic:1.5.22")
+    api("ch.qos.logback:logback-classic:1.5.32")
     api("io.github.cdimascio:dotenv-kotlin:6.5.1")
-    api("dev.fruxz:ascend:2025.7-8af65e5")
     api("com.google.code.gson:gson:2.13.1")
+    api("com.google.guava:guava:33.5.0-jre")
 
-    api("org.jetbrains.kotlin:kotlin-reflect:2.1.20")
-    api("com.google.guava:guava:33.4.8-jre")
+    api("org.jetbrains.kotlin:kotlin-reflect:2.3.20")
 }
 
 tasks {

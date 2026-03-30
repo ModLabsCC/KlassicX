@@ -1,12 +1,12 @@
 package cc.modlabs.klassicx.tools
 
+import cc.modlabs.klassicx.extensions.getLogger
 import com.google.common.reflect.ClassPath
-import dev.fruxz.ascend.extension.logging.getThisFactoryLogger
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
 class ClazzLoader(private val baseName: String) {
-    private val logger = getThisFactoryLogger()
+    private val logger = getLogger()
 
     fun <T : Any> loadClassesInPackage(
         packageName: String,

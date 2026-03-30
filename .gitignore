@@ -39,3 +39,4 @@ bin/
 .DS_Store
 logs/latest.log
 /.temp
+/logs
