@@ -13,6 +13,18 @@ fun <T : Any> T.nullIf(condition: (T) -> Boolean): T? {
     return if (condition(this)) null else this
 }
 
+@Suppress("UNCHECKED_CAST")
+fun <O> Any?.forceCast() = this as O
+
+@Suppress("UNCHECKED_CAST")
+fun <O> Any?.forceCastOrNull() = this as? O
+
+@Suppress("UNCHECKED_CAST")
+fun <O> Any?.forceNullableCastOrNull() = this as? O?
+
+@Suppress("UnusedReceiverParameter")
+fun <T> T.dump(): Unit = Unit
+
 fun Collection<String>.filterNotBlank(): List<String> {
     return this.filter { it.isNotBlank() }
 }

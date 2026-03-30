@@ -40,3 +40,5 @@ bin/
 logs/latest.log
 /.temp
 /logs
+/.gradle-user
+/.kotlin
